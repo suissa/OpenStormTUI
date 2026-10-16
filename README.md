@@ -1,7 +1,5 @@
 <p align="center">
-  <a href="https://opentui.com">
-    <img alt="OpenTUI logo" src="https://opentui.com/opentui-logo-auto.svg" width="270" />
-  </a>
+  <h1>OpenStormTUI</h1>
 </p>
 
 <div align="center">
