@@ -1,4 +1,5 @@
 import type { Renderable } from "../Renderable.js"
+import { flattenInspectorTree, inspectRenderable } from "./inspector.js"
 
 export interface HeatmapNodeMetric {
   num: number
@@ -49,7 +50,6 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
   const wrapped = new Map<Renderable, WrappedRequest>()
   let active = false
   let destroyed = false
-  let totalRequests = 0
 
   const attach = (node: Renderable): void => {
     if (destroyed || DEVTOOLS_IDS.has(node.id) || wrapped.has(node) || wrapped.size >= maxNodes) return
@@ -65,7 +65,6 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
       value: (...args: never[]) => {
         if (active) {
           counts.set(node.num, (counts.get(node.num) ?? 0) + 1)
-          totalRequests++
         }
         return bound(...args)
       },
@@ -109,7 +108,6 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
     },
 
     snapshot() {
-      const { inspectRenderable, flattenInspectorTree } = heatmapInspectorImports
       const tree = flattenInspectorTree(inspectRenderable(root, { includeHidden: true, maxDepth: Infinity }))
       const total = [...counts.values()].reduce((sum, count) => sum + count, 0)
       return tree
@@ -130,7 +128,6 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
 
     reset() {
       counts.clear()
-      totalRequests = 0
     },
 
     destroy() {
@@ -143,5 +140,3 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
   }
 }
 
-import { flattenInspectorTree, inspectRenderable } from "./inspector.js"
-const heatmapInspectorImports = { flattenInspectorTree, inspectRenderable }
