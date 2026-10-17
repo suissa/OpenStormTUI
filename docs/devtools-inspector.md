@@ -1,0 +1,28 @@
+# DevTools Inspector
+
+The Inspector can be attached to an existing OpenTUI renderable tree. It renders a terminal-native panel and does not open a browser.
+
+```ts
+import { createInspectorOverlay } from "@opentui/core"
+
+const inspector = createInspectorOverlay(appRoot, {
+  width: 46,
+  height: 18,
+  maxDepth: 8,
+  maxNodes: 7,
+})
+
+// Bind these methods to your app's preferred debug shortcut or command.
+inspector.toggle()
+inspector.open()
+inspector.refresh()
+
+// Dispose when the application is shutting down.
+inspector.destroy()
+```
+
+When open, focus the panel and use Up/Down to select nodes, Home/End to jump to the first/last node, R to refresh, and Escape or Q to close. The panel reports each selected renderable's identity, position, dimensions, visibility, focus state, opacity, z-index, and child count.
+
+The overlay is opt-in. It is attached to the renderable root only when `createInspectorOverlay` is called. Call `destroy()` to detach and release it. The overlay's own subtree is excluded from the inspected tree.
+
+This first version is an inspector foundation: it does not yet provide mouse picking, editable computed styles, automatic keyboard shortcut registration, or the profiler/heatmap panels.
