@@ -73,22 +73,34 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
     for (const child of node.getChildren()) attach(child)
   }
 
-  const onTreeChanged = (): void => {
-    for (const node of wrapped.keys()) {
-      for (const child of node.getChildren()) attach(child)
+  const detachNode = (node: Renderable, state: WrappedRequest): void => {
+    node.off("children-changed", onTreeChanged)
+    if (state.hadOwn && state.ownDescriptor) {
+      Object.defineProperty(node, "requestRender", state.ownDescriptor)
+    } else {
+      delete (node as unknown as { requestRender?: unknown }).requestRender
     }
+    wrapped.delete(node)
   }
 
-  const detachAll = (): void => {
-    for (const [node, state] of wrapped) {
-      node.off("children-changed", onTreeChanged)
-      if (state.hadOwn && state.ownDescriptor) {
-        Object.defineProperty(node, "requestRender", state.ownDescriptor)
-      } else {
-        delete (node as unknown as { requestRender?: unknown }).requestRender
-      }
+  const syncTree = (): void => {
+    const reachable = new Set<Renderable>()
+    const visit = (node: Renderable): void => {
+      if (DEVTOOLS_IDS.has(node.id) || reachable.has(node)) return
+      reachable.add(node)
+      for (const child of node.getChildren()) visit(child)
     }
-    wrapped.clear()
+    visit(root)
+    for (const [node, state] of [...wrapped]) {
+      if (!reachable.has(node)) detachNode(node, state)
+    }
+    for (const node of reachable) attach(node)
+  }
+
+  const onTreeChanged = (): void => syncTree()
+
+  const detachAll = (): void => {
+    for (const [node, state] of [...wrapped]) detachNode(node, state)
   }
 
   attach(root)
