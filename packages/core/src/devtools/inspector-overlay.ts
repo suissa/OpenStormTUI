@@ -77,6 +77,10 @@ export class InspectorOverlay {
   private nodes: DevToolsNode[] = []
   private selectedIndex = 0
   private disposed = false
+  private readonly observedNodes = new Set<Renderable>()
+  private readonly treeChangeHandler = (): void => {
+    if (!this.disposed) this.refresh()
+  }
   private readonly inputHandler = (sequence: string): boolean => {
     if (this.options.toggleSequence && sequence === this.options.toggleSequence) {
       this.toggle()
@@ -167,6 +171,8 @@ export class InspectorOverlay {
 
   refresh(): void {
     this.assertActive()
+    this.detachTreeListeners()
+    this.attachTreeListeners(this.root)
     const tree = inspectRenderable(this.root, {
       includeHidden: this.options.includeHidden,
       maxDepth: this.options.maxDepth,
@@ -190,9 +196,30 @@ export class InspectorOverlay {
     if (this.disposed) return
     this.close()
     this.disposed = true
+    this.detachTreeListeners()
     this.inputHost.removeInputHandler?.(this.inputHandler)
     this.root.remove(this.panel)
     this.panel.destroyRecursively()
+  }
+
+  private attachTreeListeners(node: Renderable): void {
+    if (node.id === "opentui-devtools-inspector" || this.observedNodes.has(node)) return
+    this.observedNodes.add(node)
+    node.on("children-changed", this.treeChangeHandler)
+    node.on("resize", this.treeChangeHandler)
+    node.on("focused", this.treeChangeHandler)
+    node.on("blurred", this.treeChangeHandler)
+    for (const child of node.getChildren()) this.attachTreeListeners(child)
+  }
+
+  private detachTreeListeners(): void {
+    for (const node of this.observedNodes) {
+      node.off("children-changed", this.treeChangeHandler)
+      node.off("resize", this.treeChangeHandler)
+      node.off("focused", this.treeChangeHandler)
+      node.off("blurred", this.treeChangeHandler)
+    }
+    this.observedNodes.clear()
   }
 
   private assertActive(): void {
