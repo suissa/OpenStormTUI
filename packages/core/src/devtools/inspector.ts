@@ -4,6 +4,7 @@ export interface DevToolsNode {
   num: number
   id: string
   type: string
+  depth: number
   visible: boolean
   focused: boolean
   focusable: boolean
@@ -41,6 +42,7 @@ export function inspectRenderable(root: Renderable, options: InspectorOptions = 
       num: node.num,
       id: node.id,
       type: nodeType(node),
+      depth,
       visible: node.visible,
       focused: node.focused,
       focusable: node.focusable,
