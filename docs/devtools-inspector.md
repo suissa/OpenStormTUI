@@ -25,4 +25,4 @@ When open, focus the panel and use Up/Down to select nodes, Home/End to jump to 
 
 The overlay is opt-in. It is attached to the renderable root only when `createInspectorOverlay` is called. Call `destroy()` to detach and release it. The overlay's own subtree is excluded from the inspected tree.
 
-This first version is an inspector foundation: it does not yet provide mouse picking, editable computed styles, live subscriptions to every tree mutation, or the profiler/heatmap panels.
+The Inspector refreshes automatically when renderables are added, removed, reordered, resized, focused, or blurred. Call `refresh()` when application-specific state changes that do not emit one of these renderable events. It still does not provide mouse picking, editable computed styles, or the profiler/heatmap panels.
