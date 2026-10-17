@@ -23,6 +23,7 @@ export interface RenderHeatmap {
   stop(): void
   isActive(): boolean
   snapshot(): HeatmapNodeMetric[]
+  subscribe(listener: () => void): () => void
   reset(): void
   destroy(): void
 }
@@ -47,12 +48,14 @@ const DEVTOOLS_IDS = new Set([
 export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOptions = {}): RenderHeatmap {
   const maxNodes = Math.max(1, Math.trunc(options.maxNodes ?? 2_000))
   const counts = new Map<number, number>()
+  const listeners = new Set<() => void>()
+  let requestSamples = 0
   const wrapped = new Map<Renderable, WrappedRequest>()
   let active = false
   let destroyed = false
 
   const attach = (node: Renderable): void => {
-    if (destroyed || DEVTOOLS_IDS.has(node.id) || wrapped.has(node) || wrapped.size >= maxNodes) return
+    if (destroyed || [...DEVTOOLS_IDS].some((id) => node.id.startsWith(id)) || wrapped.has(node) || wrapped.size >= maxNodes) return
     const original = node.requestRender
     if (typeof original !== "function") return
     const hadOwn = Object.hasOwn(node, "requestRender")
@@ -65,6 +68,8 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
       value: (...args: never[]) => {
         if (active) {
           counts.set(node.num, (counts.get(node.num) ?? 0) + 1)
+          requestSamples++
+          if (requestSamples % 8 === 0) for (const listener of listeners) listener()
         }
         return bound(...args)
       },
@@ -109,10 +114,12 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
     start() {
       if (destroyed) throw new Error("RenderHeatmap has been destroyed")
       active = true
+      for (const listener of listeners) listener()
     },
 
     stop() {
       active = false
+      for (const listener of listeners) listener()
     },
 
     isActive() {
@@ -138,8 +145,15 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
         .sort((a, b) => b.requests - a.requests || a.id.localeCompare(b.id))
     },
 
+    subscribe(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+
     reset() {
       counts.clear()
+      requestSamples = 0
+      for (const listener of listeners) listener()
     },
 
     destroy() {
@@ -148,6 +162,7 @@ export function createRenderHeatmap(root: Renderable, options: RenderHeatmapOpti
       destroyed = true
       detachAll()
       counts.clear()
+      listeners.clear()
     },
   }
 }
