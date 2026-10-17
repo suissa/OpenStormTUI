@@ -25,4 +25,4 @@ When open, focus the panel and use Up/Down to select nodes, Home/End to jump to 
 
 The overlay is opt-in. It is attached to the renderable root only when `createInspectorOverlay` is called. Call `destroy()` to detach and release it. The overlay's own subtree is excluded from the inspected tree.
 
-This first version is an inspector foundation: it does not yet provide mouse picking, editable computed styles, automatic keyboard shortcut registration, or the profiler/heatmap panels.
+This first version is an inspector foundation: it does not yet provide mouse picking, editable computed styles, live subscriptions to every tree mutation, or the profiler/heatmap panels.
