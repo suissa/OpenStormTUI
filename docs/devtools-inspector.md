@@ -9,10 +9,10 @@ const inspector = createInspectorOverlay(appRoot, {
   width: 46,
   height: 18,
   maxDepth: 8,
-  maxNodes: 7,
+  maxNodes: 4,
 })
 
-// Bind these methods to your app's preferred debug shortcut or command.
+// F12 toggles the panel by default. You can also control it programmatically.
 inspector.toggle()
 inspector.open()
 inspector.refresh()
@@ -21,7 +21,7 @@ inspector.refresh()
 inspector.destroy()
 ```
 
-When open, focus the panel and use Up/Down to select nodes, Home/End to jump to the first/last node, R to refresh, and Escape or Q to close. The panel reports each selected renderable's identity, position, dimensions, visibility, focus state, opacity, z-index, and child count.
+When open, focus the panel and use Up/Down to select nodes, Home/End to jump to the first/last node, R to refresh, and Escape or Q to close. F12 toggles the panel by default; set `toggleSequence: null` to disable the global shortcut or pass a different terminal sequence. The panel reports each selected renderable's identity, position, dimensions, visibility, focus state, opacity, z-index, and child count.
 
 The overlay is opt-in. It is attached to the renderable root only when `createInspectorOverlay` is called. Call `destroy()` to detach and release it. The overlay's own subtree is excluded from the inspected tree.
 
