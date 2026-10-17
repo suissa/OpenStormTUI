@@ -83,7 +83,7 @@ export class InspectorOverlay {
       maxDepth: options.maxDepth ?? 8,
       width: Math.max(24, options.width ?? 46),
       height: Math.max(10, options.height ?? 18),
-      maxNodes: Math.max(1, options.maxNodes ?? 7),
+      maxNodes: Math.max(1, options.maxNodes ?? 4),
     }
 
     this.panel = new BoxRenderable(root.ctx, {
