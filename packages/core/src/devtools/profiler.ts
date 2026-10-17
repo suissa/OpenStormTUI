@@ -35,6 +35,7 @@ export interface Profiler {
   stop(): void
   isActive(): boolean
   record(name: string, durationMs: number): void
+  subscribe(listener: (snapshot: ProfilerSnapshot) => void): () => void
   measure<T>(name: string, operation: () => T): T
   snapshot(): ProfilerSnapshot
   reset(): void
@@ -54,6 +55,7 @@ interface MutableMetric {
 export function createProfiler(options: ProfilerOptions = {}): Profiler {
   const precision = Math.max(0, Math.min(6, Math.trunc(options.precision ?? 3)))
   const metrics = new Map<string, MutableMetric>()
+  const listeners = new Set<(snapshot: ProfilerSnapshot) => void>()
   let active = false
   let startedAt: number | null = null
 
@@ -89,7 +91,12 @@ export function createProfiler(options: ProfilerOptions = {}): Profiler {
     metric.minMs = Math.min(metric.minMs, durationMs)
     metric.maxMs = Math.max(metric.maxMs, durationMs)
     metric.lastMs = durationMs
-    options.onSample?.(toPublicMetric(metric))
+    const publicMetric = toPublicMetric(metric)
+    options.onSample?.(publicMetric)
+    if (listeners.size > 0) {
+      const snapshot = profiler.snapshot()
+      for (const listener of listeners) listener(snapshot)
+    }
   }
 
   const profiler: Profiler = {
@@ -107,6 +114,11 @@ export function createProfiler(options: ProfilerOptions = {}): Profiler {
     },
 
     record,
+
+    subscribe(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
 
     measure<T>(name: string, operation: () => T): T {
       if (!active) return operation()
