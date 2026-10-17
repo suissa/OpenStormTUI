@@ -24,6 +24,41 @@ function nodeLabel(node: DevToolsNode, selected: boolean): string {
   return `${prefix}${node.type} #${node.num} ${node.id}${visibility}${focus}`
 }
 
+export function formatInspectorOverlayContent(
+  nodes: readonly DevToolsNode[],
+  selectedIndex: number,
+  options: { width: number; height: number; maxNodes: number },
+): string {
+  const selected = nodes[selectedIndex]
+  const visibleNodes = nodes.slice(0, options.maxNodes)
+  const lines = [
+    "↑/↓ select  Home/End jump",
+    "R refresh   Esc/Q close",
+    "",
+    ...visibleNodes.map((node, index) => nodeLabel(node, index === selectedIndex)),
+  ]
+
+  if (nodes.length > visibleNodes.length) {
+    lines.push(`… ${nodes.length - visibleNodes.length} more nodes`)
+  }
+
+  if (selected) {
+    lines.push(
+      "",
+      "SELECTED",
+      `${selected.type} #${selected.num}`,
+      `id: ${selected.id}`,
+      `pos: ${selected.x},${selected.y}  size: ${selected.width}x${selected.height}`,
+      `visible: ${selected.visible}  focus: ${selected.focused}/${selected.focusable}`,
+      `opacity: ${selected.opacity}  zIndex: ${selected.zIndex}`,
+      `children: ${selected.childCount}`,
+    )
+  }
+
+  const maxContentRows = Math.max(1, options.height - 2)
+  return lines.slice(0, maxContentRows).map((line) => line.slice(0, options.width - 4)).join("\n")
+}
+
 /**
  * A terminal-native inspector panel. Attach it to an existing renderable tree,
  * then call open(), close(), or toggle(). While open, use Up/Down to select a
@@ -117,7 +152,14 @@ export class InspectorOverlay {
       includeHidden: this.options.includeHidden,
       maxDepth: this.options.maxDepth,
     })
-    const nextNodes = flattenInspectorTree(tree)
+    // Hide this panel's subtree from the inspected application tree.
+    const withoutInspector = (node: DevToolsNode): DevToolsNode => ({
+      ...node,
+      children: node.children
+        .filter((child) => child.id !== "opentui-devtools-inspector")
+        .map(withoutInspector),
+    })
+    const nextNodes = flattenInspectorTree(withoutInspector(tree))
     const selectedNum = this.nodes[this.selectedIndex]?.num
     this.nodes = nextNodes
     const preservedIndex = selectedNum === undefined ? -1 : nextNodes.findIndex((node) => node.num === selectedNum)
@@ -173,34 +215,7 @@ export class InspectorOverlay {
   }
 
   private renderContent(): void {
-    const selected = this.nodes[this.selectedIndex]
-    const visibleNodes = this.nodes.slice(0, this.options.maxNodes)
-    const lines = [
-      "↑/↓ select  Home/End jump",
-      "R refresh   Esc/Q close",
-      "",
-      ...visibleNodes.map((node, index) => nodeLabel(node, index === this.selectedIndex)),
-    ]
-
-    if (this.nodes.length > visibleNodes.length) {
-      lines.push(`… ${this.nodes.length - visibleNodes.length} more nodes`)
-    }
-
-    if (selected) {
-      lines.push(
-        "",
-        "SELECTED",
-        `${selected.type} #${selected.num}`,
-        `id: ${selected.id}`,
-        `pos: ${selected.x},${selected.y}  size: ${selected.width}x${selected.height}`,
-        `visible: ${selected.visible}  focus: ${selected.focused}/${selected.focusable}`,
-        `opacity: ${selected.opacity}  zIndex: ${selected.zIndex}`,
-        `children: ${selected.childCount}`,
-      )
-    }
-
-    const maxContentRows = Math.max(1, this.options.height - 2)
-    this.text.content = lines.slice(0, maxContentRows).map((line) => line.slice(0, this.options.width - 4)).join("\n")
+    this.text.content = formatInspectorOverlayContent(this.nodes, this.selectedIndex, this.options)
   }
 }
 
