@@ -9,8 +9,10 @@ export interface InspectorOverlayOptions extends InspectorOptions {
   width?: number
   /** Height in terminal rows. Defaults to 18. */
   height?: number
-  /** Maximum number of nodes displayed in the tree list. Defaults to 7. */
+  /** Maximum number of nodes displayed in the tree list. Defaults to 4. */
   maxNodes?: number
+  /** Raw terminal sequence that toggles the overlay. Defaults to F12; null disables it. */
+  toggleSequence?: string | null
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -75,6 +77,17 @@ export class InspectorOverlay {
   private nodes: DevToolsNode[] = []
   private selectedIndex = 0
   private disposed = false
+  private readonly inputHandler = (sequence: string): boolean => {
+    if (this.options.toggleSequence && sequence === this.options.toggleSequence) {
+      this.toggle()
+      return true
+    }
+    return false
+  }
+  private readonly inputHost: {
+    addInputHandler?: (handler: (sequence: string) => boolean) => void
+    removeInputHandler?: (handler: (sequence: string) => boolean) => void
+  }
 
   constructor(root: Renderable, options: InspectorOverlayOptions = {}) {
     this.root = root
@@ -84,6 +97,7 @@ export class InspectorOverlay {
       width: Math.max(24, options.width ?? 46),
       height: Math.max(10, options.height ?? 18),
       maxNodes: Math.max(1, options.maxNodes ?? 4),
+      toggleSequence: options.toggleSequence === undefined ? "\x1b[24~" : options.toggleSequence,
     }
 
     this.panel = new BoxRenderable(root.ctx, {
@@ -118,6 +132,8 @@ export class InspectorOverlay {
     this.panel.add(this.text)
     this.panel.handleKeyPress = (key: KeyEvent) => this.handleKey(key)
     this.root.add(this.panel)
+    this.inputHost = root.ctx as unknown as typeof this.inputHost
+    this.inputHost.addInputHandler?.(this.inputHandler)
     this.refresh()
   }
 
@@ -174,6 +190,7 @@ export class InspectorOverlay {
     if (this.disposed) return
     this.close()
     this.disposed = true
+    this.inputHost.removeInputHandler?.(this.inputHandler)
     this.root.remove(this.panel)
     this.panel.destroyRecursively()
   }
