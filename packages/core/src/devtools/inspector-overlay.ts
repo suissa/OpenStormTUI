@@ -19,9 +19,10 @@ function clamp(value: number, min: number, max: number): number {
 
 function nodeLabel(node: DevToolsNode, selected: boolean): string {
   const prefix = selected ? "> " : "  "
+  const indent = "  ".repeat(Math.min(node.depth, 8))
   const visibility = node.visible ? "" : " [hidden]"
   const focus = node.focused ? " [focused]" : ""
-  return `${prefix}${node.type} #${node.num} ${node.id}${visibility}${focus}`
+  return `${prefix}${indent}${node.type} #${node.num} ${node.id}${visibility}${focus}`
 }
 
 export function formatInspectorOverlayContent(
@@ -30,16 +31,18 @@ export function formatInspectorOverlayContent(
   options: { width: number; height: number; maxNodes: number },
 ): string {
   const selected = nodes[selectedIndex]
-  const visibleNodes = nodes.slice(0, options.maxNodes)
+  const start = Math.max(0, Math.min(nodes.length - options.maxNodes, selectedIndex - Math.floor(options.maxNodes / 2)))
+  const visibleNodes = nodes.slice(start, start + options.maxNodes)
   const lines = [
     "↑/↓ select  Home/End jump",
     "R refresh   Esc/Q close",
     "",
-    ...visibleNodes.map((node, index) => nodeLabel(node, index === selectedIndex)),
+    ...(start > 0 ? [`↑ ${start} earlier nodes`] : []),
+    ...visibleNodes.map((node, index) => nodeLabel(node, start + index === selectedIndex)),
   ]
 
-  if (nodes.length > visibleNodes.length) {
-    lines.push(`… ${nodes.length - visibleNodes.length} more nodes`)
+  if (start + visibleNodes.length < nodes.length) {
+    lines.push(`↓ ${nodes.length - start - visibleNodes.length} later nodes`)
   }
 
   if (selected) {
