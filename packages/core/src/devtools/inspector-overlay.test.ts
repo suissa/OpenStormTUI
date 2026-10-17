@@ -7,6 +7,7 @@ function node(overrides: Partial<DevToolsNode> = {}): DevToolsNode {
     num: 1,
     id: "root",
     type: "RootRenderable",
+    depth: 0,
     visible: true,
     focused: false,
     focusable: false,
@@ -42,7 +43,7 @@ describe("inspector overlay content", () => {
       { width: 30, height: 7, maxNodes: 1 },
     )
 
-    expect(content).toContain("… 2 more nodes")
+    expect(content).toContain("↓ 2 later nodes")
     expect(content.split("\n")).toHaveLength(5)
     expect(content.split("\n").every((line) => line.length <= 26)).toBe(true)
   })
