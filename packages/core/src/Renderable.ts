@@ -1650,6 +1650,8 @@ export abstract class Renderable extends BaseRenderable {
         if (previous && previous !== target) run(() => previous.requestRender())
         run(() => target.requestRender())
       })
+      target.emit("children-changed", { child, action: previous === target ? "reorder" : "add" })
+      if (previous && previous !== target) previous.emit("children-changed", { child, action: "remove" })
       return index
     })
   }
@@ -1780,6 +1782,7 @@ export abstract class Renderable extends BaseRenderable {
         renderable.parent = null
         run(() => this._ctx.unregisterLifecyclePass(renderable))
       })
+      this.emit("children-changed", { child: renderable, action: "remove" })
     })
   }
 
