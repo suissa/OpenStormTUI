@@ -1,2 +1,3 @@
 export * from "./inspector.js"
-export * from "./inspector-overlay.js"
+export * from "./profiler.js"
+export * from "./profiler-overlay.js"
